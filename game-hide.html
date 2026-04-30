@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>捉迷藏 - 红桃 7</title>
+    <!-- Version: 1.2.0 (UI Sync) -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #050505;
+            --bg-panel: rgba(26, 26, 26, 0.85);
+            --accent-red: #ff2b36;
+            --text-main: #f5f5f5;
+            --text-dim: #888;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(255, 43, 54, 0.05) 0%, transparent 80%),
+                linear-gradient(rgba(10, 10, 10, 0.8) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(10, 10, 10, 0.8) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* 统一扫描线 */
+        body::after {
+            content: "";
+            position: fixed;
+            top: -100%; left: 0; width: 100%; height: 10px;
+            background: linear-gradient(to bottom, transparent, rgba(255, 43, 54, 0.1), transparent);
+            pointer-events: none;
+            z-index: 1000;
+            animation: scan 8s linear infinite;
+        }
+        @keyframes scan { from { top: -10%; } to { top: 110%; } }
+
+        /* 统一返回按钮 */
+        .back-btn {
+            position: fixed;
+            top: 20px; left: 20px;
+            padding: 10px 20px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: bold;
+            z-index: 1001;
+            transition: all 0.3s;
+        }
+        .back-btn:hover { border-color: var(--accent-red); box-shadow: 0 0 20px rgba(255, 43, 54, 0.3); transform: translateX(5px); }
+
+        /* 顶部状态栏 */
+        .header {
+            padding: 25px 40px;
+            padding-left: 120px;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 43, 54, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .game-title { font-size: 1.4rem; font-weight: 700; color: var(--accent-red); letter-spacing: 2px; }
+        .timer { font-size: 1.8rem; font-weight: 800; color: var(--accent-red); text-shadow: 0 0 15px rgba(255, 43, 54, 0.4); }
+
+        /* 游戏大容器 */
+        .game-container {
+            max-width: 1200px;
+            margin: 30px auto;
+            width: 95%;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        /* 角色网格 */
+        .character-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+        }
+
+        .character-card {
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+        .character-card:hover { border-color: var(--accent-red); transform: translateY(-5px); }
+        .character-card.selected { border-color: var(--accent-red); box-shadow: 0 0 25px rgba(255, 43, 54, 0.3); }
+
+        .char-avatar { font-size: 3.5rem; margin-bottom: 15px; display: block; }
+        .char-name { font-size: 1.3rem; font-weight: 700; margin-bottom: 5px; }
+        .char-role { font-size: 0.85rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+
+        /* 对话日志 */
+        .log-section {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 25px;
+            height: 250px;
+            overflow-y: auto;
+            font-size: 0.95rem;
+            line-height: 1.8;
+            scrollbar-width: thin;
+        }
+        .log-entry { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.02); }
+        .log-entry.system { color: var(--accent-red); font-weight: bold; }
+        .log-entry.ai { color: #ccc; }
+        .log-entry.player { color: #00ff87; }
+
+        /* 操作区 */
+        .action-section { display: flex; gap: 20px; justify-content: center; }
+        .action-btn {
+            padding: 15px 40px;
+            background: transparent;
+            border: 1px solid var(--accent-red);
+            color: var(--accent-red);
+            border-radius: 10px;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .action-btn:hover:not(:disabled) { background: var(--accent-red); color: #fff; box-shadow: 0 0 20px rgba(255, 43, 54, 0.4); }
+        .action-btn:disabled { border-color: #333; color: #333; cursor: not-allowed; }
+
+        /* 结果弹窗 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(15px); z-index: 2000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: #111; border: 1px solid var(--accent-red); border-radius: 20px; padding: 50px; text-align: center; }
+
+        /* Toast */
+        #toast-container { position: fixed; top: 100px; right: 20px; z-index: 1500; }
+        .toast { background: var(--bg-panel); backdrop-filter: blur(10px); border-left: 4px solid var(--accent-red); padding: 15px 25px; margin-bottom: 10px; border-radius: 4px; animation: slideIn 0.3s forwards; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">← 弃牌退出</a>
+
+    <div class="header">
+        <div class="game-title">♥ 红桃 7 - 捉迷藏</div>
+        <div class="timer" id="timer">15:00</div>
+    </div>
+
+    <div class="game-container">
+        <div class="character-grid" id="char-grid"></div>
+
+        <div class="log-section" id="game-log">
+            <div class="log-entry system">系统: 身份已通过神经网络匿名分配。</div>
+        </div>
+
+        <div class="action-section">
+            <button class="action-btn" id="ask-btn" onclick="askCharacter()" disabled>执行询问</button>
+            <button class="action-btn" id="vote-btn" onclick="startVoting()">发起最终表决</button>
+        </div>
+    </div>
+
+    <div id="result-modal" class="modal">
+        <div class="modal-content">
+            <h1 id="result-title" style="font-size: 3.5rem; margin-bottom: 25px;"></h1>
+            <p id="result-desc" style="font-size: 1.1rem; color: #888; margin-bottom: 40px;"></p>
+            <button class="action-btn" onclick="location.href='index.html'">离开</button>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+        const CONFIG = {
+            VERSION: "1.2.0",
+            TIME_LIMIT: 900,
+            AI_NAMES: ["有栖", "宇佐木", "苣屋", "九头龙"],
+            AI_AVATARS: ["🏃", "🧗", "🃏", "⚖️"]
+        };
+
+        const GameState = {
+            players: [],
+            me: null,
+            wolf: null,
+            timeLeft: CONFIG.TIME_LIMIT,
+            timerInterval: null,
+            gameEnded: false,
+            selectedTarget: null
+        };
+
+        function init() {
+            setupPlayers();
+            startTimer();
+            renderPlayers();
+            addLog("系统: 找出藏在羊群中的那只狼，或者作为狼生存到最后。");
+        }
+
+        function setupPlayers() {
+            const roles = ["狼", "羊", "羊", "羊"];
+            roles.sort(() => Math.random() - 0.5);
+            for (let i = 0; i < 4; i++) {
+                const player = { id: i, name: CONFIG.AI_NAMES[i], avatar: CONFIG.AI_AVATARS[i], role: roles[i], isAI: i !== 0, suspicion: 0 };
+                GameState.players.push(player);
+                if (player.role === "狼") GameState.wolf = player;
+                if (!player.isAI) GameState.me = player;
+            }
+            addLog(`系统: 你的身份记录为【${GameState.me.role}】。`, 'system');
+        }
+
+        function renderPlayers() {
+            const grid = document.getElementById('char-grid');
+            grid.innerHTML = '';
+            GameState.players.forEach(p => {
+                const card = document.createElement('div');
+                card.className = `character-card ${GameState.selectedTarget === p.id ? 'selected' : ''}`;
+                card.onclick = () => selectTarget(p.id);
+                card.innerHTML = `
+                    <span class="char-avatar">${p.avatar}</span>
+                    <div class="char-name">${p.name}${p.isAI ? '' : ' (你)'}</div>
+                    <div class="char-role">${p.isAI ? '???' : p.role}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function selectTarget(id) {
+            if (GameState.gameEnded) return;
+            GameState.selectedTarget = id;
+            document.getElementById('ask-btn').disabled = (id === GameState.me.id);
+            renderPlayers();
+        }
+
+        function askCharacter() {
+            if (GameState.selectedTarget === null) return;
+            const target = GameState.players[GameState.selectedTarget];
+            const responses = [
+                "我不可能是狼，我一直都在这里。",
+                "我觉得某些人的行为很可疑...",
+                "时间不多了，我们得快点做决定。",
+                "你在怀疑我吗？你应该去看看其他人。"
+            ];
+            const msg = responses[Math.floor(Math.random() * responses.length)];
+            addLog(`${target.name}: "${msg}"`, 'ai');
+            showToast(`已记录 ${target.name} 的证言`);
+        }
+
+        function startVoting() {
+            if (GameState.selectedTarget === null || GameState.selectedTarget === GameState.me.id) {
+                return showToast("请先选择一名怀疑对象");
+            }
+            const target = GameState.players[GameState.selectedTarget];
+            const isWolf = (target.role === "狼");
+            if (isWolf) endGame(true, "表决正确。狼已被识破并处决。");
+            else endGame(false, `表决错误。${target.name}是羊。狼是${GameState.wolf.name}。`);
+        }
+
+        function endGame(win, desc) {
+            GameState.gameEnded = true;
+            clearInterval(GameState.timerInterval);
+            const modal = document.getElementById('result-modal');
+            const title = document.getElementById('result-title');
+            title.textContent = win ? "GAME CLEAR" : "GAME OVER";
+            title.style.color = win ? "#00ff87" : "var(--accent-red)";
+            document.getElementById('result-desc').textContent = desc;
+            modal.classList.add('active');
+            if (win) {
+                const saved = localStorage.getItem('aliceGameProgress');
+                const progress = saved ? JSON.parse(saved) : { games: {}, visaDays: 7 };
+                progress.games.hide = { cleared: true, locked: false };
+                progress.visaDays = (progress.visaDays || 7) + 3;
+                localStorage.setItem('aliceGameProgress', JSON.stringify(progress));
+            }
+        }
+
+        function startTimer() {
+            GameState.timerInterval = setInterval(() => {
+                GameState.timeLeft--;
+                const mins = Math.floor(GameState.timeLeft / 60);
+                const secs = GameState.timeLeft % 60;
+                document.getElementById('timer').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+                if (GameState.timeLeft <= 0) endGame(false, "时间到。镭射处决。");
+            }, 1000);
+        }
+
+        function addLog(msg, type = 'ai') {
+            const log = document.getElementById('game-log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = msg;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function showToast(msg) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

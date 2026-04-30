@@ -1,0 +1,21 @@
+{
+  "name": "alice-in-borderland",
+  "version": "1.3.1",
+  "description": "High-fidelity Alice in Borderland game suite.",
+  "main": "index.html",
+  "scripts": {
+    "lint": "eslint . --ext .html,.js",
+    "format": "prettier --write .",
+    "test": "echo \"No tests defined\" && exit 0"
+  },
+  "keywords": ["game", "alice-in-borderland", "glassmorphism"],
+  "author": "Antigravity",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "10.2.1",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-html": "8.1.4",
+    "prettier": "3.8.3"
+  },
+  "packageManager": "pnpm@10.33.2"
+}

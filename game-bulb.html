@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>灯泡谜题 - 方块 4</title>
+    <!-- Version: 1.2.0 (UI Sync) -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #050505;
+            --bg-panel: rgba(26, 26, 26, 0.8);
+            --accent-blue: #00d2ff;
+            --accent-red: #ff2b36;
+            --text-main: #f5f5f5;
+            --text-dim: #888;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(0, 210, 255, 0.05) 0%, transparent 80%),
+                linear-gradient(rgba(15, 15, 15, 0.8) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(15, 15, 15, 0.8) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* 统一扫描线 */
+        body::after {
+            content: "";
+            position: fixed;
+            top: -100%; left: 0; width: 100%; height: 10px;
+            background: linear-gradient(to bottom, transparent, rgba(0, 210, 255, 0.1), transparent);
+            pointer-events: none;
+            z-index: 1000;
+            animation: scan 8s linear infinite;
+        }
+
+        @keyframes scan { from { top: -10%; } to { top: 110%; } }
+
+        /* 统一返回按钮 */
+        .back-btn {
+            position: fixed;
+            top: 20px; left: 20px;
+            padding: 10px 20px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: bold;
+            z-index: 1001;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn:hover {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.3);
+            transform: translateX(5px);
+        }
+
+        /* 顶部状态栏 */
+        .header {
+            padding: 25px 40px;
+            padding-left: 120px;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(0, 210, 255, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .game-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--accent-blue);
+        }
+
+        .timer {
+            font-size: 1.8rem;
+            font-weight: 800;
+            font-family: 'Courier New', monospace;
+            color: var(--accent-blue);
+            text-shadow: 0 0 15px rgba(0, 210, 255, 0.5);
+        }
+
+        /* 游戏主体面板 */
+        .game-container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 40px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        /* 开关与灯泡区域 */
+        .interaction-zone {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .panel-section {
+            background: rgba(0,0,0,0.3);
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            text-align: center;
+        }
+
+        .section-label {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        /* 开关样式 */
+        .switch-group {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .switch-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .switch-btn {
+            width: 50px;
+            height: 80px;
+            background: #222;
+            border: 2px solid #333;
+            border-radius: 5px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .switch-btn::after {
+            content: "";
+            position: absolute;
+            top: 5px; left: 5px; width: 36px; height: 35px;
+            background: #444;
+            transition: all 0.2s;
+        }
+
+        .switch-btn.on { border-color: var(--accent-blue); background: #001a22; }
+        .switch-btn.on::after { transform: translateY(35px); background: var(--accent-blue); box-shadow: 0 0 15px var(--accent-blue); }
+
+        /* 灯泡样式 */
+        .bulb-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .bulb-icon {
+            font-size: 5rem;
+            filter: grayscale(1);
+            transition: all 0.5s;
+            opacity: 0.3;
+        }
+
+        .bulb-icon.on { filter: grayscale(0); opacity: 1; text-shadow: 0 0 40px var(--accent-blue); }
+
+        /* 操作按钮 */
+        .action-group {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .btn-action {
+            padding: 15px 40px;
+            border-radius: 10px;
+            border: 1px solid var(--accent-blue);
+            background: transparent;
+            color: var(--accent-blue);
+            font-weight: bold;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-action:hover:not(:disabled) {
+            background: var(--accent-blue);
+            color: #000;
+            box-shadow: 0 0 30px rgba(0, 210, 255, 0.4);
+        }
+
+        .btn-action:disabled { border-color: #333; color: #333; cursor: not-allowed; }
+
+        /* 结果弹窗 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(15px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active { display: flex; }
+
+        .modal-content {
+            background: #111;
+            border: 1px solid var(--accent-blue);
+            padding: 50px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 500px;
+        }
+
+        /* Toast系统 */
+        #toast-container { position: fixed; top: 100px; right: 20px; z-index: 1500; }
+        .toast {
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            border-left: 4px solid var(--accent-blue);
+            padding: 15px 25px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            animation: slideIn 0.3s forwards;
+        }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn"><span>←</span> 返回大厅</a>
+
+    <div class="header">
+        <div class="game-title">♦ 方块 4 - 灯泡谜题</div>
+        <div class="timer" id="timer">10:00</div>
+    </div>
+
+    <div class="game-container">
+        <div class="interaction-zone">
+            <!-- 开关室 -->
+            <div class="panel-section">
+                <span class="section-label">开关控制室 (SWITCH ROOM)</span>
+                <div class="switch-group">
+                    <div class="switch-box">
+                        <div id="sw-0" class="switch-btn" onclick="toggleSwitch(0)"></div>
+                        <span>A</span>
+                    </div>
+                    <div class="switch-box">
+                        <div id="sw-1" class="switch-btn" onclick="toggleSwitch(1)"></div>
+                        <span>B</span>
+                    </div>
+                    <div class="switch-box">
+                        <div id="sw-2" class="switch-btn" onclick="toggleSwitch(2)"></div>
+                        <span>C</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 灯泡室 -->
+            <div class="panel-section" id="bulb-room">
+                <span class="section-label">灯泡观察室 (BULB ROOM)</span>
+                <div class="bulb-container">
+                    <div class="bulb-icon" id="bulb-display">💡</div>
+                    <div id="bulb-info" style="color:var(--text-dim); font-size:0.9rem;">门已锁定，无法观察</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-group">
+            <button class="btn-action" id="open-door-btn" onclick="openDoor()">打开房门 (仅一次机会)</button>
+            <button class="btn-action" id="guess-btn" onclick="showGuessUI()" disabled>提交最终答案</button>
+        </div>
+    </div>
+
+    <!-- 猜谜弹窗 -->
+    <div id="guess-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-bottom:30px;">哪个开关控制着灯泡？</h2>
+            <div class="action-group" style="flex-direction:column; gap:15px;">
+                <button class="btn-action" onclick="makeGuess(0)">开关 A 控制灯泡</button>
+                <button class="btn-action" onclick="makeGuess(1)">开关 B 控制灯泡</button>
+                <button class="btn-action" onclick="makeGuess(2)">开关 C 控制灯泡</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 结果弹窗 -->
+    <div id="result-modal" class="modal">
+        <div class="modal-content">
+            <h1 id="result-title" style="font-size: 3rem; margin-bottom: 20px;"></h1>
+            <p id="result-desc" style="margin-bottom: 30px;"></p>
+            <button class="btn-action" onclick="location.href='index.html'">离开</button>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+        const CONFIG = {
+            VERSION: "1.2.0",
+            TIME_LIMIT: 600,
+            SOUNDS: {
+                SWITCH: 'switch',
+                SUCCESS: 'success',
+                FAILURE: 'failure'
+            }
+        };
+
+        const GameState = {
+            correctIndex: Math.floor(Math.random() * 3),
+            switches: [false, false, false],
+            switchHistory: [false, false, false], // 是否曾经开启过（用于发热逻辑）
+            doorOpened: false,
+            timeLeft: CONFIG.TIME_LIMIT,
+            timerInterval: null,
+            gameEnded: false
+        };
+
+        function init() {
+            startTimer();
+            showToast("系统: 门已关闭。你可以自由操作开关。");
+        }
+
+        function toggleSwitch(index) {
+            if (GameState.doorOpened || GameState.gameEnded) return;
+            
+            GameState.switches[index] = !GameState.switches[index];
+            if (GameState.switches[index]) GameState.switchHistory[index] = true;
+            
+            document.getElementById(`sw-${index}`).classList.toggle('on');
+            playSound(CONFIG.SOUNDS.SWITCH);
+        }
+
+        function openDoor() {
+            if (GameState.doorOpened) return;
+            
+            GameState.doorOpened = true;
+            document.getElementById('open-door-btn').disabled = true;
+            document.getElementById('guess-btn').disabled = false;
+            
+            const bulb = document.getElementById('bulb-display');
+            const info = document.getElementById('bulb-info');
+            
+            // 逻辑判定：
+            // 1. 如果当前开关是开着的 -> 亮
+            // 2. 如果当前开关是关着的，但曾经开过 -> 熄灭但发热
+            // 3. 否则 -> 熄灭且冰冷
+            const isCurrentlyOn = GameState.switches[GameState.correctIndex];
+            const wasEverOn = GameState.switchHistory[GameState.correctIndex];
+            
+            if (isCurrentlyOn) {
+                bulb.classList.add('on');
+                info.textContent = "状态: 灯泡正在发光";
+            } else if (wasEverOn) {
+                bulb.classList.remove('on');
+                info.textContent = "状态: 灯泡微热 (熄灭)";
+            } else {
+                bulb.classList.remove('on');
+                info.textContent = "状态: 灯泡冰冷 (熄灭)";
+            }
+
+            showToast("注意: 门已打开，开关已锁死。请做出选择。");
+        }
+
+        function showGuessUI() {
+            document.getElementById('guess-modal').classList.add('active');
+        }
+
+        function makeGuess(index) {
+            document.getElementById('guess-modal').classList.remove('active');
+            if (index === GameState.correctIndex) {
+                endGame(true, "恭喜通关！你成功识破了方块 4 的谜题。");
+            } else {
+                endGame(false, `错误。正确答案是开关 ${['A','B','C'][GameState.correctIndex]}。`);
+            }
+        }
+
+        function endGame(win, desc) {
+            GameState.gameEnded = true;
+            clearInterval(GameState.timerInterval);
+            
+            const modal = document.getElementById('result-modal');
+            const title = document.getElementById('result-title');
+            title.textContent = win ? "GAME CLEAR" : "GAME OVER";
+            title.style.color = win ? "var(--accent-blue)" : "var(--accent-red)";
+            document.getElementById('result-desc').textContent = desc;
+            modal.classList.add('active');
+
+            if (win) {
+                const saved = localStorage.getItem('aliceGameProgress');
+                const progress = saved ? JSON.parse(saved) : { games: {}, visaDays: 7 };
+                progress.games.bulb = { cleared: true, locked: false };
+                progress.visaDays = (progress.visaDays || 7) + 3;
+                localStorage.setItem('aliceGameProgress', JSON.stringify(progress));
+                playSound(CONFIG.SOUNDS.SUCCESS);
+            } else {
+                playSound(CONFIG.SOUNDS.FAILURE);
+            }
+        }
+
+        function startTimer() {
+            GameState.timerInterval = setInterval(() => {
+                GameState.timeLeft--;
+                const mins = Math.floor(GameState.timeLeft / 60);
+                const secs = GameState.timeLeft % 60;
+                document.getElementById('timer').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+                if (GameState.timeLeft <= 0) endGame(false, "时间到。镭射处决。");
+            }, 1000);
+        }
+
+        function playSound(type) { console.log(`[Sound] Playing: ${type}`); }
+
+        function showToast(msg) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

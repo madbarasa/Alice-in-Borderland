@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单张牌对决 - 梅花 K</title>
+    <!-- Version: 1.2.0 (UI Sync) -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #050505;
+            --bg-panel: rgba(26, 26, 26, 0.85);
+            --accent-club: #00ff87;
+            --accent-red: #ff2b36;
+            --text-main: #f5f5f5;
+            --text-dim: #888;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(0, 255, 135, 0.05) 0%, transparent 80%),
+                linear-gradient(rgba(10, 10, 10, 0.8) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(10, 10, 10, 0.8) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* 统一扫描线 */
+        body::after {
+            content: "";
+            position: fixed;
+            top: -100%; left: 0; width: 100%; height: 10px;
+            background: linear-gradient(to bottom, transparent, rgba(0, 255, 135, 0.1), transparent);
+            pointer-events: none;
+            z-index: 1000;
+            animation: scan 8s linear infinite;
+        }
+        @keyframes scan { from { top: -10%; } to { top: 110%; } }
+
+        /* 统一返回按钮 */
+        .back-btn {
+            position: fixed;
+            top: 20px; left: 20px;
+            padding: 10px 20px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: bold;
+            z-index: 1001;
+            transition: all 0.3s;
+        }
+        .back-btn:hover { border-color: var(--accent-club); box-shadow: 0 0 20px rgba(0, 255, 135, 0.3); transform: translateX(5px); }
+
+        /* 顶部状态 */
+        .header {
+            padding: 25px 40px;
+            padding-left: 120px;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(0, 255, 135, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .game-title { font-size: 1.4rem; font-weight: 700; color: var(--accent-club); letter-spacing: 2px; }
+        .score-board { font-size: 1.1rem; font-weight: bold; color: var(--text-dim); }
+        .score-board span { color: var(--accent-club); }
+
+        /* 游戏主体区域 */
+        .game-area {
+            max-width: 1100px;
+            margin: 30px auto;
+            width: 95%;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        /* 对方与己方区域 */
+        .battle-zone {
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .side-label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 3px; text-align: center; }
+
+        .card-container { display: flex; justify-content: center; gap: 15px; }
+
+        .playing-card {
+            width: 85px; height: 125px;
+            background: #fff;
+            color: #000;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8rem;
+            font-weight: 800;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .playing-card.back { background: #1a1a1a; color: transparent; border: 2px solid #333; }
+        .playing-card.selected { transform: translateY(-20px); border: 3px solid var(--accent-club); box-shadow: 0 15px 30px rgba(0, 255, 135, 0.3); }
+
+        /* 目标数字 */
+        .target-section { text-align: center; }
+        .target-circle {
+            width: 110px; height: 110px;
+            border: 3px solid var(--accent-club);
+            border-radius: 50%;
+            margin: 10px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--accent-club);
+            background: rgba(0, 255, 135, 0.05);
+            box-shadow: 0 0 30px rgba(0, 255, 135, 0.1);
+        }
+
+        /* 运算表达区 */
+        .expression-panel {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            letter-spacing: 4px;
+            color: var(--accent-club);
+            font-family: 'Courier New', monospace;
+        }
+
+        .operator-grid { display: flex; justify-content: center; gap: 12px; }
+        .op-btn {
+            width: 55px; height: 55px;
+            background: #222;
+            border: 1px solid #333;
+            color: #fff;
+            border-radius: 8px;
+            font-size: 1.4rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .op-btn:hover { background: var(--accent-club); color: #000; box-shadow: 0 0 15px rgba(0, 255, 135, 0.3); }
+
+        .btn-action {
+            padding: 15px 35px;
+            border-radius: 10px;
+            border: 1.5px solid var(--accent-club);
+            background: transparent;
+            color: var(--accent-club);
+            font-weight: bold;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-action:hover:not(:disabled) { background: var(--accent-club); color: #000; box-shadow: 0 0 20px rgba(0, 255, 135, 0.3); }
+        .btn-action:disabled { border-color: #333; color: #333; cursor: not-allowed; }
+
+        /* 结果弹窗 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(15px); z-index: 2000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: #111; border: 1px solid var(--accent-club); padding: 50px; border-radius: 20px; text-align: center; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">← 结算离开</a>
+
+    <div class="header">
+        <div class="game-title">♣ 梅花 K - 单张牌对决</div>
+        <div class="score-board">玩家 <span>[<span id="player-score">0</span>]</span> : <span>[<span id="ai-score">0</span>]</span> 发牌者</div>
+    </div>
+
+    <div class="game-area">
+        <div class="battle-zone">
+            <div class="side-label">DEALER'S HAND / 对手手牌</div>
+            <div class="card-container" id="ai-cards"></div>
+
+            <div class="target-section">
+                <div class="side-label">TARGET / 目标数字</div>
+                <div class="target-circle" id="target-number">?</div>
+            </div>
+
+            <div class="side-label">YOUR EXPRESSION / 运算公式</div>
+            <div class="expression-panel" id="expression-display">_</div>
+            
+            <div class="operator-grid">
+                <button class="op-btn" onclick="addOperator('+')">+</button>
+                <button class="op-btn" onclick="addOperator('-')">-</button>
+                <button class="op-btn" onclick="addOperator('*')">×</button>
+                <button class="op-btn" onclick="addOperator('/')">÷</button>
+                <button class="op-btn" onclick="addOperator('(')">(</button>
+                <button class="op-btn" onclick="addOperator(')')">)</button>
+            </div>
+
+            <div class="side-label">YOUR HAND / 你的手牌</div>
+            <div class="card-container" id="player-cards"></div>
+
+            <div style="display: flex; gap: 20px; justify-content: center;">
+                <button class="btn-action" style="border-color: #555; color: #555;" onclick="clearExpression()">重置</button>
+                <button class="btn-action" id="submit-btn" onclick="checkExpression()" disabled>验证结果</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="result-modal" class="modal">
+        <div class="modal-content">
+            <h1 id="result-title" style="font-size: 3.5rem; margin-bottom: 25px;"></h1>
+            <p id="result-desc" style="font-size: 1.2rem; color: #888; margin-bottom: 40px;"></p>
+            <button class="btn-action" onclick="location.href='index.html'">返回大厅</button>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = { ROUNDS_TO_WIN: 3, AI_TIME: 18000, TARGETS: [10, 12, 15, 16, 18, 20, 24] };
+        const GameState = { playerScore: 0, aiScore: 0, target: 0, playerCards: [], aiCards: [], currentExp: [], isEnded: false, aiTimer: null };
+
+        function init() { newRound(); }
+
+        function newRound() {
+            GameState.isEnded = false; GameState.currentExp = [];
+            GameState.target = CONFIG.TARGETS[Math.floor(Math.random() * CONFIG.TARGETS.length)];
+            GameState.playerCards = Array.from({length: 4}, () => ({val: Math.floor(Math.random() * 10) + 1, used: false}));
+            GameState.aiCards = Array.from({length: 4}, () => ({val: Math.floor(Math.random() * 10) + 1, used: false}));
+            renderUI(); startAiTimer();
+        }
+
+        function renderUI() {
+            document.getElementById('target-number').textContent = GameState.target;
+            document.getElementById('player-score').textContent = GameState.playerScore;
+            document.getElementById('ai-score').textContent = GameState.aiScore;
+            document.getElementById('expression-display').textContent = GameState.currentExp.join(' ') || '_';
+            
+            const aiContainer = document.getElementById('ai-cards');
+            aiContainer.innerHTML = '';
+            GameState.aiCards.forEach(() => {
+                const card = document.createElement('div');
+                card.className = 'playing-card back'; card.textContent = '?';
+                aiContainer.appendChild(card);
+            });
+
+            const playerContainer = document.getElementById('player-cards');
+            playerContainer.innerHTML = '';
+            GameState.playerCards.forEach((card, i) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = `playing-card ${card.used ? 'selected' : ''}`;
+                cardEl.textContent = card.val;
+                cardEl.onclick = () => addNumber(i);
+                playerContainer.appendChild(cardEl);
+            });
+            document.getElementById('submit-btn').disabled = GameState.currentExp.length === 0;
+        }
+
+        function addNumber(i) {
+            if (GameState.isEnded || GameState.playerCards[i].used) return;
+            GameState.playerCards[i].used = true;
+            GameState.currentExp.push(GameState.playerCards[i].val);
+            renderUI();
+        }
+
+        function addOperator(op) {
+            if (GameState.isEnded) return;
+            GameState.currentExp.push(op);
+            renderUI();
+        }
+
+        function clearExpression() {
+            if (GameState.isEnded) return;
+            GameState.currentExp = [];
+            GameState.playerCards.forEach(c => c.used = false);
+            renderUI();
+        }
+
+        function startAiTimer() {
+            clearTimeout(GameState.aiTimer);
+            GameState.aiTimer = setTimeout(() => {
+                if (!GameState.isEnded) roundEnd(false, "发牌者先达成了目标！");
+            }, CONFIG.AI_TIME);
+        }
+
+        function checkExpression() {
+            if (GameState.isEnded) return;
+            try {
+                const rawExp = GameState.currentExp.join('');
+                if (!/^[0-9+\-*/()]*$/.test(rawExp)) throw new Error();
+                const res = eval(rawExp);
+                if (Math.abs(res - GameState.target) < 0.01) roundEnd(true, "成功达成目标！");
+                else alert(`结果为 ${res}，不等于目标 ${GameState.target}`);
+            } catch (e) { alert("表达式无效"); }
+        }
+
+        function roundEnd(win, msg) {
+            GameState.isEnded = true; clearTimeout(GameState.aiTimer);
+            if (win) GameState.playerScore++; else GameState.aiScore++;
+            alert(msg);
+            if (GameState.playerScore >= CONFIG.ROUNDS_TO_WIN) endGame(true, "你赢得了单张牌对决！");
+            else if (GameState.aiScore >= CONFIG.ROUNDS_TO_WIN) endGame(false, "你输掉了博弈，生命到此为止。");
+            else newRound();
+        }
+
+        function endGame(win, desc) {
+            const modal = document.getElementById('result-modal');
+            const title = document.getElementById('result-title');
+            title.textContent = win ? "GAME CLEAR" : "GAME OVER";
+            title.style.color = win ? "var(--accent-club)" : "var(--accent-red)";
+            document.getElementById('result-desc').textContent = desc;
+            modal.classList.add('active');
+            if (win) {
+                const saved = localStorage.getItem('aliceGameProgress');
+                const progress = saved ? JSON.parse(saved) : { games: {}, visaDays: 7 };
+                progress.games.card = { cleared: true, locked: false };
+                progress.visaDays = (progress.visaDays || 7) + 7;
+                localStorage.setItem('aliceGameProgress', JSON.stringify(progress));
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

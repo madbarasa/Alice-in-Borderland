@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>试炼重置 - ALICE RETRY</title>
+    <!-- Version: 1.2.0 (UI Sync) -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #050505;
+            --bg-panel: rgba(26, 26, 26, 0.85);
+            --accent-red: #ff2b36;
+            --text-main: #f5f5f5;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(255, 43, 54, 0.05) 0%, transparent 80%),
+                linear-gradient(rgba(10, 10, 10, 0.8) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(10, 10, 10, 0.8) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* 统一扫描线 */
+        body::after {
+            content: "";
+            position: fixed;
+            top: -100%; left: 0; width: 100%; height: 10px;
+            background: linear-gradient(to bottom, transparent, rgba(255, 43, 54, 0.1), transparent);
+            pointer-events: none;
+            z-index: 1000;
+            animation: scan 8s linear infinite;
+        }
+        @keyframes scan { from { top: -10%; } to { top: 110%; } }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            padding: 50px;
+            text-align: center;
+            background: var(--bg-panel);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 30px 100px rgba(0,0,0,0.8);
+            position: relative;
+            z-index: 10;
+        }
+
+        .logo {
+            font-size: 3.5rem;
+            font-weight: 800;
+            letter-spacing: 15px;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #fff, var(--accent-red));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .desc {
+            font-size: 1.1rem;
+            color: #888;
+            margin-bottom: 50px;
+            line-height: 1.6;
+            letter-spacing: 1px;
+        }
+
+        .action-group {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .btn-retry {
+            width: 100%;
+            max-width: 350px;
+            padding: 20px;
+            background: transparent;
+            border: 1px solid var(--accent-red);
+            color: var(--accent-red);
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-family: inherit;
+        }
+
+        .btn-retry:hover {
+            background: var(--accent-red);
+            color: #fff;
+            box-shadow: 0 0 30px rgba(255, 43, 54, 0.4);
+            transform: scale(1.05);
+        }
+
+        .footer-note {
+            margin-top: 50px;
+            font-size: 0.75rem;
+            color: #444;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="logo">RETRY</div>
+        <p class="desc">
+            签证已失效。由于系统判定你的脑波仍处于活跃状态，<br>
+            现为你开启一次“弥留”重连机会。<br>
+            所有已通关记录将保留，是否重新进入试炼？
+        </p>
+        
+        <div class="action-group">
+            <button class="btn-retry" onclick="location.href='index.html'">重新进入大厅</button>
+            <button class="btn-retry" style="border-color:#444; color:#444;" onclick="resetAll()">彻底清除记忆 (重置所有进度)</button>
+        </div>
+
+        <div class="footer-note">System v1.2.0 | Alice in Borderland Project</div>
+    </div>
+
+    <script>
+        function resetAll() {
+            if(confirm("确定要删除所有进度吗？这将无法撤销。")) {
+                localStorage.removeItem('aliceGameProgress');
+                location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>

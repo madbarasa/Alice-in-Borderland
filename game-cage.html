@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>牢笼逃脱 - 黑桃 5</title>
+    <!-- Version: 1.2.0 (UI Sync) -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #050505;
+            --bg-panel: rgba(20, 20, 20, 0.85);
+            --accent-spade: #8e9eab;
+            --accent-red: #ff2b36;
+            --text-main: #f5f5f5;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(142, 158, 171, 0.05) 0%, transparent 80%),
+                linear-gradient(rgba(10, 10, 10, 0.8) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(10, 10, 10, 0.8) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* 统一扫描线 */
+        body::after {
+            content: "";
+            position: fixed;
+            top: -100%; left: 0; width: 100%; height: 10px;
+            background: linear-gradient(to bottom, transparent, rgba(142, 158, 171, 0.1), transparent);
+            pointer-events: none;
+            z-index: 1000;
+            animation: scan 8s linear infinite;
+        }
+        @keyframes scan { from { top: -10%; } to { top: 110%; } }
+
+        /* 统一返回按钮 */
+        .back-btn {
+            position: fixed;
+            top: 20px; left: 20px;
+            padding: 10px 20px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: bold;
+            z-index: 1001;
+            transition: all 0.3s;
+        }
+        .back-btn:hover { border-color: var(--accent-spade); box-shadow: 0 0 20px rgba(142, 158, 171, 0.3); transform: translateX(5px); }
+
+        /* 顶部状态 */
+        .header {
+            padding: 25px 40px;
+            padding-left: 120px;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(142, 158, 171, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .health-bar-container {
+            width: 300px; height: 8px;
+            background: #222;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .health-bar { width: 100%; height: 100%; background: var(--accent-red); transition: width 0.3s; }
+
+        /* 游戏主体 */
+        .stage {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .cage {
+            width: 600px; height: 600px;
+            border: 8px solid #333;
+            background: rgba(255, 0, 0, 0.02);
+            backdrop-filter: blur(5px);
+            border-radius: 20px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: inset 0 0 50px rgba(0,0,0,1);
+        }
+        .cage.shrinking { border-color: var(--accent-red); box-shadow: inset 0 0 100px rgba(255, 43, 54, 0.2), 0 0 30px rgba(255, 43, 54, 0.3); }
+
+        .question-box { width: 80%; text-align: center; z-index: 10; }
+        .question-text { font-size: 1.8rem; font-weight: 700; margin-bottom: 40px; }
+
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .option-btn {
+            padding: 18px;
+            background: rgba(40, 40, 40, 0.6);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .option-btn:hover { background: var(--accent-spade); color: #000; transform: scale(1.02); }
+
+        .progress-info { position: absolute; bottom: 30px; font-size: 1.1rem; color: var(--accent-spade); font-weight: bold; }
+
+        /* 警报 */
+        .alarm { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 500; opacity: 0; transition: opacity 0.3s; }
+        .alarm.active { animation: flash 1.5s infinite; }
+        @keyframes flash { 0%, 100% { background: transparent; } 50% { background: rgba(255, 43, 54, 0.1); } }
+
+        /* 弹窗 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(15px); z-index: 2000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { text-align: center; padding: 50px; border: 1px solid var(--accent-spade); border-radius: 20px; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">← 弃赛</a>
+
+    <div class="header">
+        <div style="font-size: 1.4rem; font-weight: 700; color: var(--accent-spade);">♠ 黑桃 5 - 牢笼逃脱</div>
+        <div class="health-bar-container"><div class="health-bar" id="health-bar"></div></div>
+    </div>
+
+    <div class="stage">
+        <div class="cage" id="cage">
+            <div class="question-box">
+                <div class="question-text" id="question-text">加载中...</div>
+                <div class="options-grid" id="options-grid"></div>
+            </div>
+        </div>
+        <div class="progress-info" id="progress-info">进度: 0 / 10</div>
+    </div>
+
+    <div class="alarm" id="alarm-overlay"></div>
+
+    <div id="result-modal" class="modal">
+        <div class="modal-content">
+            <h1 id="result-title" style="font-size: 4rem; margin-bottom: 20px;"></h1>
+            <p id="result-desc" style="font-size: 1.2rem; color: #888; margin-bottom: 40px;"></p>
+            <button onclick="location.reload()" style="padding: 12px 30px; border: 1px solid #fff; background: transparent; color: #fff; cursor: pointer; margin-right: 15px;">重试</button>
+            <button onclick="location.href='index.html'" style="padding: 12px 30px; border: 1px solid var(--accent-red); background: var(--accent-red); color: #fff; cursor: pointer;">返回大厅</button>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            TOTAL_QUESTIONS: 10,
+            INITIAL_SIZE: 600,
+            MIN_SIZE: 250,
+            SHRINK_RATE: 0.6,
+            WRONG_PENALTY: 65,
+            CORRECT_BONUS: 45,
+            QUESTIONS: [
+                { q: "一个箱子有12个苹果，拿走5个，你还有几个？", a: ["5", "7", "12", "0"], c: 0 },
+                { q: "如果 1=5, 2=25, 3=125, 4=625, 那么 5=？", a: ["3125", "5", "1", "25"], c: 2 },
+                { q: "什么东西早晨四条腿，中午两条腿，晚上三条腿？", a: ["桌子", "人", "影子", "时间"], c: 1 },
+                { q: "如果有3个苹果，你拿走2个，你有几个苹果？", a: ["1", "2", "3", "5"], c: 1 },
+                { q: "1, 1, 2, 3, 5, 8, ?", a: ["11", "12", "13", "15"], c: 2 },
+                { q: "医生给你3颗药丸，要你每半小时吃一颗，吃完需要多长时间？", a: ["30分钟", "1小时", "1.5小时", "2小时"], c: 1 },
+                { q: "哪个数字在数列中不合群：2, 3, 5, 7, 9, 11？", a: ["3", "7", "9", "11"], c: 2 },
+                { q: "我有城市但没有房子，有山脉但没有树，有水但没有鱼。我是什么？", a: ["梦", "地球仪", "地图", "书"], c: 2 },
+                { q: "昨天的明天是后天的哪一天？", a: ["昨天", "今天", "明天", "大后天"], c: 0 },
+                { q: "一个安静的房间里有4个蜡烛，风吹灭了2个，最后还剩几个？", a: ["0", "2", "4", "以上都不是"], c: 1 }
+            ]
+        };
+
+        const GameState = {
+            currentQuestion: 0,
+            cageSize: CONFIG.INITIAL_SIZE,
+            health: 100,
+            isGameEnded: false,
+            timer: null,
+            questions: []
+        };
+
+        function init() {
+            GameState.questions = [...CONFIG.QUESTIONS].sort(() => Math.random() - 0.5);
+            startLoop();
+            loadQuestion();
+        }
+
+        function startLoop() {
+            GameState.timer = setInterval(() => {
+                if (GameState.isGameEnded) return;
+                GameState.cageSize -= CONFIG.SHRINK_RATE;
+                updateUI();
+                if (GameState.cageSize <= CONFIG.MIN_SIZE) endGame(false, "你被牢笼彻底困住了...");
+                if (GameState.cageSize < 380) document.getElementById('alarm-overlay').classList.add('active');
+            }, 50);
+        }
+
+        function loadQuestion() {
+            if (GameState.currentQuestion >= CONFIG.TOTAL_QUESTIONS) return endGame(true, "你成功顶住了压力，牢笼已停止收缩！");
+            const qData = GameState.questions[GameState.currentQuestion];
+            document.getElementById('question-text').textContent = qData.q;
+            document.getElementById('progress-info').textContent = `进度: ${GameState.currentQuestion} / ${CONFIG.TOTAL_QUESTIONS}`;
+            const grid = document.getElementById('options-grid');
+            grid.innerHTML = '';
+            qData.a.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(index);
+                grid.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(index) {
+            if (GameState.isGameEnded) return;
+            const qData = GameState.questions[GameState.currentQuestion];
+            if (index === qData.c) {
+                GameState.cageSize = Math.min(CONFIG.INITIAL_SIZE, GameState.cageSize + CONFIG.CORRECT_BONUS);
+                GameState.currentQuestion++;
+                loadQuestion();
+            } else {
+                GameState.cageSize -= CONFIG.WRONG_PENALTY;
+                GameState.health -= 25;
+                updateUI();
+                if (GameState.health <= 0) return endGame(false, "由于你的持续错误，收缩达到了临界点...");
+                GameState.currentQuestion++;
+                loadQuestion();
+            }
+        }
+
+        function updateUI() {
+            const cage = document.getElementById('cage');
+            cage.style.width = GameState.cageSize + 'px';
+            cage.style.height = GameState.cageSize + 'px';
+            document.getElementById('health-bar').style.width = GameState.health + '%';
+            if (GameState.cageSize < 420) cage.classList.add('shrinking');
+            else cage.classList.remove('shrinking');
+        }
+
+        function endGame(win, desc) {
+            GameState.isGameEnded = true;
+            clearInterval(GameState.timer);
+            const modal = document.getElementById('result-modal');
+            const title = document.getElementById('result-title');
+            title.textContent = win ? "GAME CLEAR" : "GAME OVER";
+            title.style.color = win ? "var(--accent-spade)" : "var(--accent-red)";
+            document.getElementById('result-desc').textContent = desc;
+            modal.classList.add('active');
+
+            if (win) {
+                const saved = localStorage.getItem('aliceGameProgress');
+                const progress = saved ? JSON.parse(saved) : { games: {}, visaDays: 7 };
+                progress.games.cage = { cleared: true, locked: false };
+                progress.visaDays = (progress.visaDays || 7) + 3;
+                localStorage.setItem('aliceGameProgress', JSON.stringify(progress));
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

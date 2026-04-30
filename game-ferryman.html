@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>摆渡人 - JOKER</title>
+    <!-- Version: 1.2.0 (UI Sync) -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #000;
+            --bg-panel: rgba(15, 15, 15, 0.9);
+            --accent-joker: #ffffff;
+            --text-main: #f5f5f5;
+            --text-dim: #666;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.03) 0%, transparent 80%),
+                linear-gradient(rgba(10, 10, 10, 0.8) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(10, 10, 10, 0.8) 1px, transparent 1px);
+            background-size: 100% 100%, 50px 50px, 50px 50px;
+        }
+
+        /* 统一扫描线 */
+        body::after {
+            content: "";
+            position: fixed;
+            top: -100%; left: 0; width: 100%; height: 10px;
+            background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.05), transparent);
+            pointer-events: none;
+            z-index: 1000;
+            animation: scan 10s linear infinite;
+        }
+        @keyframes scan { from { top: -10%; } to { top: 110%; } }
+
+        /* 统一返回按钮 */
+        .back-btn {
+            position: fixed;
+            top: 20px; left: 20px;
+            padding: 10px 20px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: #fff;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.8rem;
+            z-index: 1001;
+            transition: all 0.5s;
+            opacity: 0.3;
+        }
+        .back-btn:hover { opacity: 1; border-color: #fff; }
+
+        /* 圣洁的叙事容器 */
+        .narrative-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .joker-aura {
+            width: 120px; height: 120px;
+            background: #fff;
+            border-radius: 50%;
+            margin-bottom: 50px;
+            box-shadow: 0 0 100px rgba(255, 255, 255, 0.2);
+            animation: breathe 4s ease-in-out infinite;
+        }
+        @keyframes breathe { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.1); opacity: 1; } }
+
+        .story-text {
+            font-size: 1.6rem;
+            line-height: 2;
+            margin-bottom: 60px;
+            font-weight: 400;
+            min-height: 120px;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+        .story-text.active { opacity: 1; }
+
+        .choice-group {
+            display: flex;
+            gap: 30px;
+            opacity: 0;
+            transition: opacity 1.5s ease;
+        }
+        .choice-group.active { opacity: 1; }
+
+        .btn-choice {
+            padding: 15px 45px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border-radius: 50px;
+            font-family: inherit;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.5s;
+        }
+        .btn-choice:hover {
+            background: #fff;
+            color: #000;
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.4);
+        }
+
+        /* 最终结果屏 */
+        .finale-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 5000;
+        }
+        .finale-text {
+            color: #000;
+            font-size: 5rem;
+            font-weight: 800;
+            letter-spacing: 20px;
+            animation: zoomOut 3s forwards;
+        }
+        @keyframes zoomOut { from { transform: scale(1.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">← 梦醒</a>
+
+    <div class="narrative-container">
+        <div class="joker-aura"></div>
+        <div class="story-text" id="story-text">加载中...</div>
+        <div class="choice-group" id="choice-group"></div>
+    </div>
+
+    <div class="finale-overlay" id="finale">
+        <div class="finale-text" id="finale-text">REBORN</div>
+    </div>
+
+    <script>
+        const STORY = [
+            {
+                text: "恭喜你，异乡人。你已跨越了所有的试炼。",
+                choices: [{ text: "你是谁？", next: 1 }]
+            },
+            {
+                text: "我？我是游走于生死边缘的摆渡人。现在，你拥有了最终的选择权。",
+                choices: [{ text: "什么选择？", next: 2 }]
+            },
+            {
+                text: "你可以选择永久留在‘弥留之国’，成为这里的永久居民；或者，放弃一切记忆，回到那个早已模糊的世界。",
+                choices: [
+                    { text: "拒绝成为国民", action: 'reborn' },
+                    { text: "成为永久国民", action: 'stay' }
+                ]
+            }
+        ];
+
+        let currentStep = 0;
+
+        function render() {
+            const step = STORY[currentStep];
+            const textEl = document.getElementById('story-text');
+            const choiceEl = document.getElementById('choice-group');
+
+            textEl.classList.remove('active');
+            choiceEl.classList.remove('active');
+
+            setTimeout(() => {
+                textEl.textContent = step.text;
+                textEl.classList.add('active');
+                
+                setTimeout(() => {
+                    choiceEl.innerHTML = '';
+                    step.choices.forEach(c => {
+                        const btn = document.createElement('button');
+                        btn.className = 'btn-choice';
+                        btn.textContent = c.text;
+                        btn.onclick = () => {
+                            if (c.action) handleAction(c.action);
+                            else { currentStep = c.next; render(); }
+                        };
+                        choiceEl.appendChild(btn);
+                    });
+                    choiceEl.classList.add('active');
+                }, 1000);
+            }, 500);
+        }
+
+        function handleAction(type) {
+            const finale = document.getElementById('finale');
+            const finaleText = document.getElementById('finale-text');
+            
+            if (type === 'reborn') {
+                finaleText.textContent = "REBORN";
+                finale.style.background = "#fff";
+                finaleText.style.color = "#000";
+            } else {
+                finaleText.textContent = "STAY";
+                finale.style.background = "#000";
+                finaleText.style.color = "#ff2b36";
+            }
+
+            finale.style.display = 'flex';
+            
+            // 清除存档
+            localStorage.removeItem('aliceGameProgress');
+            
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 5000);
+        }
+
+        window.onload = () => render();
+    </script>
+</body>
+</html>

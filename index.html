@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>弥留之国的爱丽丝 - 游戏大厅</title>
+    <!-- Version: 1.3.1 -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #050505;
+            --bg-glass: rgba(26, 26, 26, 0.8);
+            --red-heart: #ff2b36;
+            --blue-diamond: #00d2ff;
+            --black-spade: #8e9eab;
+            --green-club: #00ff87;
+            --joker-white: #ffffff;
+            --text-main: #ffffff;
+            --text-dim: #888;
+            --accent: #ff2b36;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Outfit', 'Inter', 'Courier New', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(229, 9, 20, 0.05) 0%, transparent 80%),
+                linear-gradient(rgba(10, 10, 10, 0.8) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(10, 10, 10, 0.8) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* 扫描线效果 */
+        body::after {
+            content: "";
+            position: fixed;
+            top: -100%;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background: linear-gradient(to bottom, transparent, rgba(255, 43, 54, 0.1), transparent);
+            z-index: 1000;
+            pointer-events: none;
+            animation: scan 8s linear infinite;
+        }
+
+        @keyframes scan {
+            from { top: -10%; }
+            to { top: 110%; }
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: 5px;
+            background: linear-gradient(90deg, #fff, var(--red-heart));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .controls-group {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .mode-toggle {
+            display: flex;
+            background: #111;
+            padding: 5px;
+            border-radius: 50px;
+            border: 1px solid #333;
+        }
+
+        .mode-btn {
+            padding: 8px 20px;
+            border-radius: 50px;
+            border: none;
+            background: transparent;
+            color: #555;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .mode-btn.active {
+            background: var(--red-heart);
+            color: #fff;
+            box-shadow: 0 0 15px rgba(255, 43, 54, 0.4);
+        }
+
+        .visa-info {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+
+        .visa-info span {
+            color: var(--red-heart);
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .main-container {
+            max-width: 1300px;
+            margin: 40px auto;
+            padding: 0 40px;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 30px;
+        }
+
+        .game-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 400px;
+        }
+
+        .game-card:hover:not(.locked) {
+            transform: translateY(-10px);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .game-card.locked {
+            filter: grayscale(1) brightness(0.5);
+            cursor: not-allowed;
+            border-color: #222;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .suit-tag {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .suit-hearts { background: rgba(255, 43, 54, 0.2); color: var(--red-heart); border: 1px solid var(--red-heart); }
+        .suit-diamonds { background: rgba(0, 210, 255, 0.2); color: var(--blue-diamond); border: 1px solid var(--blue-diamond); }
+        .suit-spades { background: rgba(142, 158, 171, 0.2); color: var(--black-spade); border: 1px solid var(--black-spade); }
+        .suit-clubs { background: rgba(0, 255, 135, 0.2); color: var(--green-club); border: 1px solid var(--green-club); }
+        .suit-joker { background: rgba(255, 255, 255, 0.2); color: #fff; border: 1px solid #fff; }
+
+        .game-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .game-desc {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            line-height: 1.6;
+            flex-grow: 1;
+        }
+
+        .card-footer {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-play {
+            padding: 10px 25px;
+            border-radius: 8px;
+            border: 1px solid var(--red-heart);
+            background: transparent;
+            color: var(--red-heart);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-play:hover:not(:disabled) {
+            background: var(--red-heart);
+            color: #fff;
+        }
+
+        .btn-play:disabled { border-color: #333; color: #333; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active { display: flex; }
+
+        .modal-content {
+            background: #111;
+            border: 1px solid var(--red-heart);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        .stagger-in {
+            animation: slideUp 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+            opacity: 0;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">RETRY: ALICE</div>
+        
+        <div class="controls-group">
+            <div class="mode-toggle">
+                <button id="mode-campaign" class="mode-btn active" onclick="setMode('campaign')">闯关模式</button>
+                <button id="mode-survival" class="mode-btn" onclick="setMode('survival')">生存模式</button>
+            </div>
+            
+            <div class="visa-info">
+                VISA 剩余: <span id="visa-days">--</span> DAYS
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="game-grid" id="game-grid">
+            <!-- 游戏卡片 -->
+        </div>
+    </div>
+
+    <div id="rules-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="modal-title" style="margin-bottom: 20px; font-size: 2rem;"></h2>
+            <div id="modal-suit" style="margin-bottom: 20px;"></div>
+            <ul id="rules-list" style="list-style: none; line-height: 2; color: #aaa; margin-bottom: 30px;"></ul>
+            <div style="display: flex; gap: 15px;">
+                <button class="btn-play" style="flex: 1;" onclick="startSelectedGame()">确认进入试炼</button>
+                <button class="btn-play" style="flex: 1; border-color: #444; color: #444;" onclick="closeModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            VERSION: "1.3.1",
+            GAMES: [
+                { id: 'bulb', title: '灯泡谜题', diff: '♦4', suit: 'diamonds', url: 'game-bulb.html', desc: '逻辑推理的起点。在一盏灯与三个开关间寻找真理。', rules: ['通过温度寻找对应开关。', '只有一次进入房间的机会。'], unlock: null },
+                { id: 'cage', title: '牢笼逃脱', diff: '♠5', suit: 'spades', url: 'game-cage.html', desc: '物理与精神的双重压迫。回答问题以阻止牢笼收缩。', rules: ['答错会导致牢笼收缩加速。', '这是对意志力的终极考验。'], unlock: 'bulb' },
+                { id: 'hide', title: '捉迷藏', diff: '♥7', suit: 'hearts', url: 'game-hide.html', desc: '狼与羊的心理博弈。你能否在猜忌中保全性命？', rules: ['每轮身份随机分配。', '狼需要隐藏，羊需要识破。'], unlock: 'cage' },
+                { id: 'invasion', title: '地球侵略', diff: '♥9', suit: 'hearts', url: 'Invasion.html', desc: '找出潜伏的外星人。通过询问证言对比事实。', rules: ['识别谎言是唯一的生存手段。', '外星人隐藏在你们之中。'], unlock: 'hide' },
+                { id: 'labyrinth', title: '无限回廊', diff: '♠Q', suit: 'spades', url: 'game-labyrinth.html', desc: '黑暗中的死亡赛跑。躲避红外侦测并寻找氧气。', rules: ['视线之外即是深渊。', '氧气瓶是唯一的续命符。'], unlock: 'invasion' },
+                { id: 'card', title: '单张牌对决', diff: '♣K', suit: 'clubs', url: 'game-card.html', desc: '与发牌者的生死博弈。运用算力达成目标数字。', rules: ['使用数字牌组合出目标值。', '胜者生存，败者淘汰。'], unlock: 'labyrinth' },
+                { id: 'joker', title: '摆渡人', diff: 'JOKER', suit: 'joker', url: 'game-ferryman.html', desc: '通往现实的最终大门。你的选择将决定灵魂的归宿。', rules: ['生死天平必须保持平衡。', '回答将揭示你内心的真实。'], unlock: 'card' }
+            ]
+        };
+
+        const App = {
+            mode: 'campaign', 
+            visa: 7,
+            cleared: [],
+            currentGame: null,
+
+            init() {
+                const saved = localStorage.getItem('aliceGameProgress');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    this.visa = data.visaDays || 7;
+                    this.cleared = Object.keys(data.games || {}).filter(k => data.games[k].cleared);
+                    this.mode = data.mode || 'campaign';
+                }
+                this.updateModeUI();
+                this.render();
+            },
+
+            updateModeUI() {
+                document.getElementById('mode-campaign').className = `mode-btn ${this.mode === 'campaign' ? 'active' : ''}`;
+                document.getElementById('mode-survival').className = `mode-btn ${this.mode === 'survival' ? 'active' : ''}`;
+            },
+
+            setMode(m) {
+                this.mode = m;
+                this.save();
+                this.updateModeUI();
+                this.render();
+            },
+
+            save() {
+                const gamesData = {};
+                this.cleared.forEach(id => { gamesData[id] = {cleared: true}; });
+                const data = {
+                    games: gamesData,
+                    visaDays: this.visa,
+                    mode: this.mode
+                };
+                localStorage.setItem('aliceGameProgress', JSON.stringify(data));
+            },
+
+            render() {
+                document.getElementById('visa-days').textContent = this.visa;
+                const grid = document.getElementById('game-grid');
+                grid.innerHTML = '';
+
+                CONFIG.GAMES.forEach((game, index) => {
+                    const isCleared = this.cleared.includes(game.id);
+                    let isLocked = false;
+                    
+                    if (this.mode === 'campaign') {
+                        isLocked = game.unlock && !this.cleared.includes(game.unlock);
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = `game-card stagger-in ${isLocked ? 'locked' : ''} ${isCleared ? 'cleared' : ''}`;
+                    card.style.animationDelay = `${index * 0.1}s`;
+                    card.onclick = () => !isLocked && this.showRules(game);
+
+                    card.innerHTML = `
+                        <div class="card-header">
+                            <span class="suit-tag suit-${game.suit}">${game.suit}</span>
+                            <span style="font-weight:bold; color:var(--text-dim)">${game.diff}</span>
+                        </div>
+                        <h2 class="game-title">${game.title}</h2>
+                        <p class="game-desc">${game.desc}</p>
+                        <div class="card-footer">
+                            <span style="font-size:0.8rem; color:${isCleared ? 'var(--green-club)' : 'var(--text-dim)'}">
+                                ${isCleared ? '✓ 已通关' : isLocked ? '⚠ 封锁中' : '● 可挑战'}
+                            </span>
+                            <button class="btn-play" ${isLocked ? 'disabled' : ''}>进入</button>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            },
+
+            showRules(game) {
+                this.currentGame = game;
+                document.getElementById('modal-title').textContent = game.title;
+                document.getElementById('modal-suit').innerHTML = `<span class="suit-tag suit-${game.suit}">${game.suit} | ${game.diff}</span>`;
+                document.getElementById('rules-list').innerHTML = game.rules.map(r => `<li>▸ ${r}</li>`).join('');
+                document.getElementById('rules-modal').classList.add('active');
+            }
+        };
+
+        function setMode(m) { App.setMode(m); }
+        function closeModal() { document.getElementById('rules-modal').classList.remove('active'); }
+        function startSelectedGame() { if (App.currentGame) window.location.href = App.currentGame.url; }
+
+        window.onload = () => App.init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>无限回廊 - 黑桃 Q</title>
+    <!-- Version: 1.2.0 (UI Sync) -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #050505;
+            --bg-panel: rgba(26, 26, 26, 0.85);
+            --accent-spade: #8e9eab;
+            --accent-red: #ff2b36;
+            --text-main: #f5f5f5;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(142, 158, 171, 0.05) 0%, transparent 80%),
+                linear-gradient(rgba(10, 10, 10, 0.8) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(10, 10, 10, 0.8) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* 统一扫描线 */
+        body::after {
+            content: "";
+            position: fixed;
+            top: -100%; left: 0; width: 100%; height: 10px;
+            background: linear-gradient(to bottom, transparent, rgba(142, 158, 171, 0.1), transparent);
+            pointer-events: none;
+            z-index: 1000;
+            animation: scan 8s linear infinite;
+        }
+        @keyframes scan { from { top: -10%; } to { top: 110%; } }
+
+        /* 统一返回按钮 */
+        .back-btn {
+            position: fixed;
+            top: 20px; left: 20px;
+            padding: 10px 20px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: bold;
+            z-index: 1001;
+            transition: all 0.3s;
+        }
+        .back-btn:hover { border-color: var(--accent-spade); box-shadow: 0 0 20px rgba(142, 158, 171, 0.3); transform: translateX(5px); }
+
+        /* 顶部状态栏 */
+        .header {
+            padding: 25px 40px;
+            padding-left: 120px;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(142, 158, 171, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .oxygen-container {
+            width: 300px;
+            height: 10px;
+            background: #111;
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .oxygen-bar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            transition: width 0.1s linear;
+            box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+        }
+
+        /* 游戏画布 */
+        .stage {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            position: relative;
+        }
+
+        #game-canvas {
+            background: #080808;
+            box-shadow: 0 0 100px rgba(0,0,0,1);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* 提示 */
+        .controls-hint {
+            position: absolute;
+            bottom: 30px;
+            color: #444;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* 结果弹窗 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(15px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active { display: flex; }
+
+        .modal-content {
+            background: #111;
+            border: 1px solid var(--accent-spade);
+            padding: 50px;
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        .modal-title { font-size: 4rem; margin-bottom: 20px; font-weight: 800; }
+        .win { color: #00ff87; }
+        .lose { color: var(--accent-red); }
+
+        .btn-action {
+            margin-top: 30px;
+            padding: 15px 40px;
+            background: transparent;
+            border: 1px solid var(--accent-spade);
+            color: var(--accent-spade);
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .btn-action:hover { background: var(--accent-spade); color: #000; box-shadow: 0 0 20px rgba(142, 158, 171, 0.4); }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">← 撤回大厅</a>
+
+    <div class="header">
+        <div style="font-size: 1.4rem; font-weight: 700; color: var(--accent-spade); letter-spacing: 2px;">♠ 黑桃 Q - 无限回廊</div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span style="font-size: 0.8rem; color: #666; font-weight: bold;">OXYGEN / 氧气</span>
+            <div class="oxygen-container">
+                <div class="oxygen-bar" id="oxygen-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stage">
+        <canvas id="game-canvas"></canvas>
+        <div class="controls-hint">MOVE: WASD / ARROWS | WARNING: RED AREA = LASER SIGHT</div>
+    </div>
+
+    <div id="result-modal" class="modal">
+        <div class="modal-content">
+            <h1 id="result-title" class="modal-title"></h1>
+            <p id="result-desc" style="font-size: 1.2rem; color: #888; margin-bottom: 40px;"></p>
+            <div style="display: flex; gap: 20px; justify-content: center;">
+                <button class="btn-action" style="border-color: #fff; color: #fff;" onclick="location.reload()">重新同步</button>
+                <button class="btn-action" onclick="location.href='index.html'">返回</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            TILE_SIZE: 40,
+            GRID_WIDTH: 15,
+            GRID_HEIGHT: 15,
+            OXYGEN_MAX: 100,
+            OXYGEN_DECAY: 0.06,
+            PLAYER_SPEED: 4
+        };
+
+        const GameState = {
+            player: { x: 40, y: 40 },
+            exit: { x: 0, y: 0 },
+            ghosts: [],
+            walls: [],
+            oxygen: 100,
+            isEnded: false,
+            keys: {}
+        };
+
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function init() {
+            canvas.width = CONFIG.GRID_WIDTH * CONFIG.TILE_SIZE;
+            canvas.height = CONFIG.GRID_HEIGHT * CONFIG.TILE_SIZE;
+            setupMap();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function setupMap() {
+            GameState.walls = [
+                {x: 2, y: 2, w: 1, h: 5}, {x: 5, y: 1, w: 1, h: 4},
+                {x: 8, y: 3, w: 4, h: 1}, {x: 2, y: 9, w: 6, h: 1},
+                {x: 10, y: 6, w: 1, h: 6}, {x: 12, y: 10, w: 2, h: 1}
+            ];
+            GameState.ghosts = [
+                { x: 400, y: 100, dx: 2.5, dy: 0, angle: 0 },
+                { x: 100, y: 400, dx: 0, dy: -2.5, angle: Math.PI/2 }
+            ];
+            GameState.exit = { x: 13, y: 13 };
+        }
+
+        function gameLoop() {
+            if (GameState.isEnded) return;
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update() {
+            GameState.oxygen -= CONFIG.OXYGEN_DECAY;
+            document.getElementById('oxygen-bar').style.width = GameState.oxygen + '%';
+            if (GameState.oxygen <= 0) endGame(false, "氧气耗尽，你倒在了回廊中...");
+
+            let nextX = GameState.player.x, nextY = GameState.player.y;
+            if (GameState.keys['ArrowUp'] || GameState.keys['w']) nextY -= CONFIG.PLAYER_SPEED;
+            if (GameState.keys['ArrowDown'] || GameState.keys['s']) nextY += CONFIG.PLAYER_SPEED;
+            if (GameState.keys['ArrowLeft'] || GameState.keys['a']) nextX -= CONFIG.PLAYER_SPEED;
+            if (GameState.keys['ArrowRight'] || GameState.keys['d']) nextX += CONFIG.PLAYER_SPEED;
+
+            if (!checkCollision(nextX, nextY)) {
+                GameState.player.x = nextX;
+                GameState.player.y = nextY;
+            }
+            GameState.player.x = Math.max(10, Math.min(canvas.width - 10, GameState.player.x));
+            GameState.player.y = Math.max(10, Math.min(canvas.height - 10, GameState.player.y));
+
+            GameState.ghosts.forEach(g => {
+                g.x += g.dx; g.y += g.dy;
+                if (g.x < 50 || g.x > canvas.width - 50) g.dx *= -1;
+                if (g.y < 50 || g.y > canvas.height - 50) g.dy *= -1;
+                g.angle = Math.atan2(g.dy, g.dx);
+                const dist = Math.hypot(g.x - GameState.player.x, g.y - GameState.player.y);
+                if (dist < 130) {
+                    const angleToPlayer = Math.atan2(GameState.player.y - g.y, GameState.player.x - g.x);
+                    let diff = Math.abs(g.angle - angleToPlayer);
+                    if (diff > Math.PI) diff = 2 * Math.PI - diff;
+                    if (diff < Math.PI / 4) endGame(false, "你被鬼的热成像发现了！");
+                }
+            });
+
+            if (Math.hypot(GameState.player.x - (GameState.exit.x * 40 + 20), GameState.player.y - (GameState.exit.y * 40 + 20)) < 30) {
+                endGame(true, "成功找到出口，逃离了无限回廊！");
+            }
+        }
+
+        function checkCollision(x, y) {
+            return GameState.walls.some(w => {
+                const wx = w.x * 40, wy = w.y * 40, ww = w.w * 40, wh = w.h * 40;
+                return x > wx && x < wx + ww && y > wy && y < wy + wh;
+            });
+        }
+
+        function draw() {
+            ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#111';
+            GameState.walls.forEach(w => ctx.fillRect(w.x * 40, w.y * 40, w.w * 40, w.h * 40));
+            ctx.fillStyle = '#00ff87'; ctx.beginPath();
+            ctx.arc(GameState.exit.x * 40 + 20, GameState.exit.y * 40 + 20, 15, 0, Math.PI*2);
+            ctx.fill();
+
+            GameState.ghosts.forEach(g => {
+                ctx.fillStyle = 'rgba(255, 43, 54, 0.25)'; ctx.beginPath();
+                ctx.moveTo(g.x, g.y); ctx.arc(g.x, g.y, 130, g.angle - Math.PI/4, g.angle + Math.PI/4); ctx.fill();
+                ctx.fillStyle = '#ff2b36'; ctx.beginPath(); ctx.arc(g.x, g.y, 12, 0, Math.PI*2); ctx.fill();
+            });
+
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(GameState.player.x, GameState.player.y, 10, 0, Math.PI*2); ctx.fill();
+            const grad = ctx.createRadialGradient(GameState.player.x, GameState.player.y, 50, GameState.player.x, GameState.player.y, 280);
+            grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(1, 'rgba(0,0,0,0.98)');
+            ctx.globalCompositeOperation = 'destination-over'; ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.globalCompositeOperation = 'source-over';
+        }
+
+        function endGame(win, desc) {
+            GameState.isEnded = true;
+            const modal = document.getElementById('result-modal');
+            const title = document.getElementById('result-title');
+            title.textContent = win ? "GAME CLEAR" : "GAME OVER";
+            title.className = `modal-title ${win ? 'win' : 'lose'}`;
+            document.getElementById('result-desc').textContent = desc;
+            modal.classList.add('active');
+            if (win) {
+                const saved = localStorage.getItem('aliceGameProgress');
+                const progress = saved ? JSON.parse(saved) : { games: {}, visaDays: 7 };
+                progress.games.labyrinth = { cleared: true, locked: false };
+                progress.visaDays = (progress.visaDays || 7) + 5;
+                localStorage.setItem('aliceGameProgress', JSON.stringify(progress));
+            }
+        }
+
+        window.addEventListener('keydown', e => GameState.keys[e.key] = true);
+        window.addEventListener('keyup', e => GameState.keys[e.key] = false);
+        window.onload = init;
+    </script>
+</body>
+</html>
